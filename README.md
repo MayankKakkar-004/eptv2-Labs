@@ -495,3 +495,136 @@ chmod +x ./nmap ./bash-port-scanner.sh
 - MITRE ATT&CK: [T1046 - Network Service Scanning](https://attack.mitre.org/techniques/T1046/)
 - Bash TCP Port Scanner: [https://catonmat.net/tcp-port-scanner-in-bash](https://catonmat.net/tcp-port-scanner-in-bash)
 
+# FTP and Samba Reconnaissance Lab
+
+This document provides a step-by-step guide to performing FTP and SMB (Samba) reconnaissance using tools like **Metasploit**, **Nmap**, **smbclient**, and **rpcclient** on a Kali Linux machine.
+
+---
+
+## Lab 1: FTP Enumeration
+
+### Step 1: Access Kali Machine
+Open the lab link to access the Kali virtual machine.
+
+### Step 2: Check Connectivity
+```bash
+ping -c 4 demo.ine.local
+```
+Ensure the target is reachable.
+
+### Step 3: FTP Version Enumeration (Metasploit)
+```bash
+msfconsole
+use auxiliary/scanner/ftp/ftp_version
+set RHOSTS demo.ine.local
+run
+```
+Result: Target is running **ProFTPD 1.3.5a**
+
+### Step 4: FTP Brute Force Login (Metasploit)
+```bash
+use auxiliary/scanner/ftp/ftp_login
+set RHOSTS demo.ine.local
+set USER_FILE /usr/share/metasploit-framework/data/wordlists/common_users.txt
+set PASS_FILE /usr/share/metasploit-framework/data/wordlists/unix_passwords.txt
+run
+```
+Result: Credentials found — `sysadmin:654321`
+
+### Step 5: Anonymous Login Check
+```bash
+use auxiliary/scanner/ftp/anonymous
+set RHOSTS demo.ine.local
+run
+```
+Result: Anonymous login **not allowed**
+
+### Step 6: Login to FTP Server
+```bash
+ftp demo.ine.local
+# Username: sysadmin
+# Password: 654321
+```
+Result: Authentication successful
+
+---
+
+## Lab 2: Samba Reconnaissance
+
+### Step 1: Access Kali Machine
+Open the lab link to access the Kali virtual machine.
+
+### Step 2: Find TCP Ports Used by SMB
+```bash
+nmap demo.ine.local
+```
+Result: Ports **139** and **445** open
+
+### Step 3: Find UDP Ports Used by NMBD
+```bash
+nmap -sU --top-ports 25 demo.ine.local
+```
+Result: Ports **137** and **138** open
+
+### Step 4: Get Workgroup Name
+```bash
+nmap -sV -p 445 demo.ine.local
+```
+Result: Workgroup — **RECONLABS**
+
+### Step 5: Discover Exact Samba Version (Nmap Script)
+```bash
+nmap --script smb-os-discovery.nse -p 445 demo.ine.local
+```
+Result: **Samba 4.3.11-Ubuntu**
+
+### Step 6: Discover Samba Version (Metasploit)
+```bash
+msfconsole -q
+use auxiliary/scanner/smb/smb_version
+set RHOSTS demo.ine.local
+exploit
+```
+Result: **Samba 4.3.11-Ubuntu**
+
+### Step 7: NetBIOS Computer Name via Nmap Script
+```bash
+nmap --script smb-os-discovery.nse -p 445 demo.ine.local
+```
+Result: **SAMBA-RECON**
+
+### Step 8: NetBIOS Name via nmblookup
+```bash
+nmblookup -A demo.ine.local
+```
+Result: **SAMBA-RECON**
+
+### Step 9: Anonymous Access Check via smbclient
+```bash
+smbclient -L demo.ine.local -N
+```
+Result: Anonymous access **allowed**
+
+### Step 10: Anonymous Access Check via rpcclient
+```bash
+rpcclient -U "" -N demo.ine.local
+```
+Result: Anonymous access **allowed**
+
+---
+
+## Conclusion
+
+- In **Lab 1**, we learned how to enumerate FTP services using Metasploit and identify valid login credentials.
+- In **Lab 2**, we performed a comprehensive Samba enumeration using both Metasploit and Nmap, and confirmed the possibility of anonymous access.
+
+---
+
+## References
+
+1. [Samba](https://www.samba.org/)
+2. [smbclient Manual](https://www.samba.org/samba/docs/current/man-html/smbclient.1.html)
+3. [rpcclient Manual](https://www.samba.org/samba/docs/current/man-html/rpcclient.1.html)
+4. [nmblookup Manual](https://www.samba.org/samba/docs/current/man-html/nmblookup.1.html)
+5. [Nmap Script: smb-os-discovery](https://nmap.org/nsedoc/scripts/smb-os-discovery.html)
+6. [Metasploit Module: SMB Version Detection](https://www.rapid7.com/db/modules/auxiliary/scanner/smb/smb_version)
